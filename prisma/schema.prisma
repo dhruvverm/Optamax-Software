@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Product {
+  id           String     @id @default(cuid())
+  name         String
+  sku          String     @unique
+  category     String
+  costPrice    Float
+  sellingPrice Float
+  stock        Int        @default(0)
+  minStock     Int        @default(5)
+  unit         String     @default("pcs")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  saleItems    SaleItem[]
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String    @unique
+  email     String?
+  address   String?
+  state     String?
+  city      String?
+  pincode   String?
+  dob       String?
+  rightSph  Float?
+  rightCyl  Float?
+  rightAxis Float?
+  leftSph   Float?
+  leftCyl   Float?
+  leftAxis  Float?
+  addPower  Float?
+  createdAt DateTime  @default(now())
+  sales     Sale[]
+  messages  MessageRecipient[]
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  invoiceNumber String     @unique
+  customerId    String?
+  customer      Customer?  @relation(fields: [customerId], references: [id])
+  subtotal      Float
+  discount      Float      @default(0)
+  tax           Float      @default(0)
+  totalAmount   Float
+  profit        Float      @default(0)
+  paymentMethod String     @default("cash")
+  note          String?
+  createdAt     DateTime   @default(now())
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  costPrice Float
+  total     Float
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  category    String
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model Message {
+  id         String             @id @default(cuid())
+  subject    String
+  content    String
+  sentAt     DateTime           @default(now())
+  recipients MessageRecipient[]
+}
+
+model MessageRecipient {
+  id         String   @id @default(cuid())
+  messageId  String
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+}
