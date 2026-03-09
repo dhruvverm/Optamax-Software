@@ -1,29 +1,33 @@
 {
-  "name": "side-view",
-  "version": "0.1.0",
+  "name": "sideview",
+  "version": "1.0.0",
   "private": true,
+  "description": "SideView — All-in-one Business Manager",
+  "author": "Dhruv Verma",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:build": "npm run build && electron-builder --mac --win",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
-    "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-libsql": "^7.4.2",
     "@prisma/client": "^7.4.2",
-    "@types/better-sqlite3": "^7.6.13",
-    "better-sqlite3": "^12.6.2",
     "date-fns": "^4.1.0",
-    "dotenv": "^17.3.1",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "prisma": "^7.4.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
+    "wait-on": "^9.0.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -31,9 +35,69 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.sideview.app",
+    "productName": "SideView",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "prisma/**/*",
+      "prisma.config.ts",
+      "src/generated/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "prisma",
+        "to": "prisma-data/prisma"
+      },
+      {
+        "from": "prisma.config.ts",
+        "to": "prisma-data/prisma.config.ts"
+      },
+      {
+        "from": "node_modules/.prisma",
+        "to": "prisma-data/node_modules/.prisma"
+      },
+      {
+        "from": "node_modules/prisma",
+        "to": "prisma-data/node_modules/prisma"
+      },
+      {
+        "from": "node_modules/@prisma",
+        "to": "prisma-data/node_modules/@prisma"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business",
+      "icon": "electron/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }
