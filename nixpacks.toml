@@ -1,0 +1,11 @@
+[phases.setup]
+aptPkgs = ["python3", "make", "g++", "build-essential"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx prisma generate && npm run build:next"]
+
+[start]
+cmd = "npx prisma migrate deploy && npm start"
