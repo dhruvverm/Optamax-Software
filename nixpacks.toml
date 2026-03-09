@@ -5,7 +5,7 @@ aptPkgs = ["python3", "make", "g++", "build-essential"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npx prisma generate && npm run build:next"]
+cmds = ["npx prisma generate && npx next build"]
 
 [start]
-cmd = "npx prisma migrate deploy && npm start"
+cmd = "npx prisma migrate deploy 2>/dev/null; npx next start -H 0.0.0.0 -p ${PORT:-3000}"
