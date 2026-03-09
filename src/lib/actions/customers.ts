@@ -197,26 +197,26 @@ export async function importCustomers(rows: ImportRow[]) {
       continue;
     }
     const dobStr = parseDob(row.dob);
-    const data: Record<string, unknown> = {
+    const payload = {
       name: row.name.trim(),
       phone,
+      ...(str(row.email) && { email: str(row.email) }),
+      ...(str(row.address) && { address: str(row.address) }),
+      ...(str(row.state) && { state: str(row.state) }),
+      ...(str(row.city) && { city: str(row.city) }),
+      ...(str(row.pincode) && { pincode: str(row.pincode) }),
+      ...(dobStr && { dob: dobStr }),
+      ...(num(row.rightSph) != null && { rightSph: num(row.rightSph) }),
+      ...(num(row.rightCyl) != null && { rightCyl: num(row.rightCyl) }),
+      ...(num(row.rightAxis) != null && { rightAxis: num(row.rightAxis) }),
+      ...(num(row.leftSph) != null && { leftSph: num(row.leftSph) }),
+      ...(num(row.leftCyl) != null && { leftCyl: num(row.leftCyl) }),
+      ...(num(row.leftAxis) != null && { leftAxis: num(row.leftAxis) }),
+      ...(num(row.addPower) != null && { addPower: num(row.addPower) }),
     };
-    if (str(row.email)) data.email = str(row.email);
-    if (str(row.address)) data.address = str(row.address);
-    if (str(row.state)) data.state = str(row.state);
-    if (str(row.city)) data.city = str(row.city);
-    if (str(row.pincode)) data.pincode = str(row.pincode);
-    if (dobStr) data.dob = dobStr;
-    if (num(row.rightSph) != null) data.rightSph = num(row.rightSph);
-    if (num(row.rightCyl) != null) data.rightCyl = num(row.rightCyl);
-    if (num(row.rightAxis) != null) data.rightAxis = num(row.rightAxis);
-    if (num(row.leftSph) != null) data.leftSph = num(row.leftSph);
-    if (num(row.leftCyl) != null) data.leftCyl = num(row.leftCyl);
-    if (num(row.leftAxis) != null) data.leftAxis = num(row.leftAxis);
-    if (num(row.addPower) != null) data.addPower = num(row.addPower);
 
     try {
-      await prisma.customer.create({ data });
+      await prisma.customer.create({ data: payload });
       imported++;
     } catch {
       skipped++;
