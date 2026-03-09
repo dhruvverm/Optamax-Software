@@ -1,7 +1,7 @@
 const electron = require("electron");
 const { app, BrowserWindow, shell } = electron;
 const path = require("path");
-const { spawn, execSync } = require("child_process");
+const { fork, execFileSync } = require("child_process");
 const net = require("net");
 const http = require("http");
 const fs = require("fs");
@@ -32,25 +32,34 @@ function findFreePort() {
   });
 }
 
+function getAppRoot() {
+  if (isDev()) return path.join(__dirname, "..");
+  return path.join(process.resourcesPath, "app");
+}
+
 function runMigrations() {
   const dbPath = getDbPath();
   try {
-    let cwd, prismaBin;
+    let cwd, prismaJs;
     if (isDev()) {
       cwd = path.join(__dirname, "..");
-      prismaBin = path.join(cwd, "node_modules", ".bin", "prisma");
+      prismaJs = path.join(cwd, "node_modules", "prisma", "build", "index.js");
     } else {
       cwd = path.join(process.resourcesPath, "prisma-data");
-      prismaBin = path.join(cwd, "node_modules", ".bin", "prisma");
+      prismaJs = path.join(cwd, "node_modules", "prisma", "build", "index.js");
     }
 
-    if (!fs.existsSync(prismaBin)) {
-      console.log("Prisma CLI not found at", prismaBin, "— skipping migration");
+    if (!fs.existsSync(prismaJs)) {
+      console.log("Prisma not found at", prismaJs, "— skipping migration");
       return;
     }
 
-    execSync(`"${prismaBin}" migrate deploy`, {
-      env: { ...process.env, DATABASE_URL: `file:${dbPath}` },
+    execFileSync(process.execPath, [prismaJs, "migrate", "deploy"], {
+      env: {
+        ...process.env,
+        DATABASE_URL: `file:${dbPath}`,
+        ELECTRON_RUN_AS_NODE: "1",
+      },
       cwd,
       stdio: "pipe",
     });
@@ -62,6 +71,7 @@ function runMigrations() {
 
 async function startNextServer(port) {
   const dbPath = getDbPath();
+  const appRoot = getAppRoot();
 
   const env = {
     ...process.env,
@@ -69,32 +79,32 @@ async function startNextServer(port) {
     HOSTNAME: "127.0.0.1",
     SIDEVIEW_DB_PATH: dbPath,
     DATABASE_URL: `file:${dbPath}`,
-    NODE_ENV: "production",
+    ELECTRON_RUN_AS_NODE: "1",
   };
 
   if (isDev()) {
-    nextServer = spawn("npx", ["next", "dev", "-p", String(port)], {
-      cwd: path.join(__dirname, ".."),
+    const nextBin = path.join(appRoot, "node_modules", "next", "dist", "bin", "next");
+    nextServer = fork(nextBin, ["dev", "-p", String(port)], {
+      cwd: appRoot,
       env: { ...env, NODE_ENV: "development" },
-      shell: true,
+      silent: true,
     });
   } else {
-    const appDir = path.join(process.resourcesPath, "app");
-    const serverJs = path.join(appDir, ".next", "standalone", "server.js");
+    const standaloneDir = path.join(appRoot, ".next", "standalone");
+    const serverJs = path.join(standaloneDir, "server.js");
 
-    if (!fs.existsSync(serverJs)) {
-      console.error("server.js not found at:", serverJs);
-      const nextBin = path.join(appDir, "node_modules", ".bin", "next");
-      nextServer = spawn(nextBin, ["start", "-p", String(port), "-H", "127.0.0.1"], {
-        cwd: appDir,
-        env,
-        shell: true,
+    if (fs.existsSync(serverJs)) {
+      nextServer = fork(serverJs, [], {
+        cwd: standaloneDir,
+        env: { ...env, NODE_ENV: "production" },
+        silent: true,
       });
     } else {
-      nextServer = spawn("node", [serverJs], {
-        cwd: path.join(appDir, ".next", "standalone"),
-        env,
-        shell: true,
+      const nextBin = path.join(appRoot, "node_modules", "next", "dist", "bin", "next");
+      nextServer = fork(nextBin, ["start", "-p", String(port), "-H", "127.0.0.1"], {
+        cwd: appRoot,
+        env: { ...env, NODE_ENV: "production" },
+        silent: true,
       });
     }
   }
@@ -103,18 +113,18 @@ async function startNextServer(port) {
   nextServer.stderr?.on("data", (d) => console.error(`[Next] ${d}`));
   nextServer.on("close", (code) => {
     console.log(`Next server exited with code ${code}`);
-    if (code !== 0 && code !== null) app.quit();
+    if (code !== 0 && code !== null && mainWindow) app.quit();
   });
 }
 
-async function waitForServer(port, timeout = 30000) {
+async function waitForServer(port, timeout = 45000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     try {
       await new Promise((resolve, reject) => {
         const req = http.get(`http://127.0.0.1:${port}`, (res) => resolve(res));
         req.on("error", reject);
-        req.setTimeout(1000, () => { req.destroy(); reject(new Error("timeout")); });
+        req.setTimeout(2000, () => { req.destroy(); reject(new Error("timeout")); });
       });
       return true;
     } catch {
