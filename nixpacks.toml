@@ -1,6 +1,3 @@
-[phases.setup]
-aptPkgs = ["python3", "make", "g++", "build-essential"]
-
 [phases.install]
 cmds = ["npm ci"]
 
