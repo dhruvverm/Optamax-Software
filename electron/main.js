@@ -1,4 +1,5 @@
-const { app, BrowserWindow, shell } = require("electron");
+const electron = require("electron");
+const { app, BrowserWindow, shell } = electron;
 const path = require("path");
 const { spawn, execSync } = require("child_process");
 const net = require("net");
@@ -9,7 +10,10 @@ let mainWindow;
 let nextServer;
 
 const APP_NAME = "SideView";
-const isDev = !app.isPackaged;
+
+function isDev() {
+  return !app.isPackaged;
+}
 
 function getDbPath() {
   const userDir = app.getPath("userData");
@@ -32,7 +36,7 @@ function runMigrations() {
   const dbPath = getDbPath();
   try {
     let cwd, prismaBin;
-    if (isDev) {
+    if (isDev()) {
       cwd = path.join(__dirname, "..");
       prismaBin = path.join(cwd, "node_modules", ".bin", "prisma");
     } else {
@@ -68,7 +72,7 @@ async function startNextServer(port) {
     NODE_ENV: "production",
   };
 
-  if (isDev) {
+  if (isDev()) {
     nextServer = spawn("npx", ["next", "dev", "-p", String(port)], {
       cwd: path.join(__dirname, ".."),
       env: { ...env, NODE_ENV: "development" },
@@ -140,7 +144,7 @@ function createWindow(port) {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
-    if (isDev) mainWindow.webContents.openDevTools();
+    if (isDev()) mainWindow.webContents.openDevTools();
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -153,7 +157,7 @@ function createWindow(port) {
 
 app.on("ready", async () => {
   try {
-    const port = isDev ? 3456 : await findFreePort();
+    const port = isDev() ? 3456 : await findFreePort();
     console.log(`Starting ${APP_NAME} on port ${port}...`);
     console.log(`Database: ${getDbPath()}`);
 
