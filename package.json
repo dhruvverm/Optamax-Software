@@ -7,14 +7,16 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && prisma migrate deploy && next build && node scripts/prepare-standalone.cjs",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
     "electron:dev": "NODE_ENV=development electron .",
-    "electron:build": "npm run build && electron-builder --mac --win",
-    "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:mac": "npm run build && electron-builder --mac"
+    "electron:build": "npm run build && electron-builder --mac --win --publish never",
+    "electron:build:win": "npm run build && electron-builder --win --publish never",
+    "electron:build:win:dir": "npm run build && electron-builder --win dir --x64 --publish never",
+    "electron:package:windows": "npm run electron:build:win:dir && node scripts/zip-win-app.cjs",
+    "electron:build:mac": "npm run build && electron-builder --mac --publish never"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
@@ -45,6 +47,7 @@
   "build": {
     "appId": "com.sideview.app",
     "productName": "SideView",
+    "publish": null,
     "directories": {
       "output": "dist-electron"
     },
@@ -68,10 +71,6 @@
         "to": "prisma-data/prisma.config.ts"
       },
       {
-        "from": "node_modules/.prisma",
-        "to": "prisma-data/node_modules/.prisma"
-      },
-      {
         "from": "node_modules/prisma",
         "to": "prisma-data/node_modules/prisma"
       },
@@ -84,14 +83,13 @@
       "target": [
         "dmg"
       ],
-      "category": "public.app-category.business",
-      "icon": "electron/icon.png"
+      "category": "public.app-category.business"
     },
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "electron/icon.png"
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": true,

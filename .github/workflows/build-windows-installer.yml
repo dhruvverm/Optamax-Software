@@ -1,0 +1,35 @@
+# Builds SideView Setup.exe on Windows (NSIS). Use this when you need a classic installer;
+# Apple Silicon Macs cannot run makensis locally.
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install and build
+        env:
+          DATABASE_URL: file:./dev.db
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package with electron-builder
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Upload installer and portable artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideview-windows
+          path: |
+            dist-electron/*.exe
+          if-no-files-found: error
